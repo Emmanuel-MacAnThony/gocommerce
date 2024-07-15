@@ -5,6 +5,7 @@ import (
 
 	"github.com/Emmanuel-MacAnThony/gocommerce/internal/api/rest"
 	"github.com/Emmanuel-MacAnThony/gocommerce/internal/dto"
+	"github.com/Emmanuel-MacAnThony/gocommerce/internal/repository"
 	"github.com/Emmanuel-MacAnThony/gocommerce/internal/service"
 	"github.com/gofiber/fiber/v2"
 )
@@ -15,7 +16,7 @@ type UserHandler struct {
 
 func SetupUserRoutes(rh *rest.RestHandler) {
 
-	svc := service.UserService{}
+	svc := service.UserService{Repo: repository.NewUserRepository(rh.DB)}
 	handler := UserHandler{svc: svc}
 	app := rh.App
 
@@ -49,7 +50,16 @@ func (h *UserHandler) Register(ctx *fiber.Ctx) error {
 }
 
 func (h *UserHandler) Login(ctx *fiber.Ctx) error {
-	return ctx.Status(http.StatusOK).JSON(&fiber.Map{"message": "login"})
+	loginInput := dto.UserLogin{}
+	err := ctx.BodyParser(&loginInput)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(&fiber.Map{"message": "Please provide valid inputs"})
+	}
+	token, err := h.svc.Login(loginInput.Email, loginInput.Password)
+	if err != nil {
+		return ctx.Status(http.StatusUnauthorized).JSON(&fiber.Map{"message": "error on login, Invalid email or password"})
+	}
+	return ctx.Status(http.StatusOK).JSON(&fiber.Map{"message": "Login Successful", "token": token})
 }
 
 func (h *UserHandler) Verify(ctx *fiber.Ctx) error {

@@ -1,26 +1,40 @@
 package service
 
 import (
-	"log"
+	"errors"
+	"fmt"
 
 	"github.com/Emmanuel-MacAnThony/gocommerce/internal/domain"
 	"github.com/Emmanuel-MacAnThony/gocommerce/internal/dto"
+	"github.com/Emmanuel-MacAnThony/gocommerce/internal/repository"
 )
 
 type UserService struct {
+	Repo repository.UserRepository
 }
 
 func (s UserService) FindUserByEmail(email string) (*domain.User, error) {
-	return &domain.User{}, nil
+	user, err := s.Repo.FindUser(email)
+	return &user, err
 }
 
 func (s UserService) SignUp(input dto.UserSignup) (string, error) {
-	log.Println("input", input)
-	return "this is my token as on now", nil
+	user, err := s.Repo.CreateUser(domain.User{
+		Email:    input.Email,
+		Password: input.Password,
+		Phone:    input.Phone,
+	})
+	userInfo := fmt.Sprintf("%v, %v, %v", user.ID, user.Email, user.UserType)
+	return userInfo, err
 }
 
-func (s UserService) Login(input interface{}) (string, error) {
-	return "", nil
+func (s UserService) Login(email string, password string) (string, error) {
+	user, err := s.FindUserByEmail(email)
+	if err != nil {
+		return "", errors.New("User does not exist for the provided email id")
+	}
+	// compare password and generate token
+	return user.Email, nil //@temporary hack
 }
 
 func (s UserService) GetVerificationCode(e domain.User) (int, error) {
